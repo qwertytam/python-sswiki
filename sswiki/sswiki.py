@@ -27,7 +27,6 @@ VD_COLS = ["Acquired",
            "Cancelled",
            "Christened",
            "Class and type",
-           "2Class and type",
            "Commissioned",
            "Completed",
            "Decommissioned",
@@ -46,7 +45,6 @@ VD_COLS = ["Acquired",
            "Name",
            "Ordered",
            "Out of service",
-           "Preceded by",
            "Preserved",
            "Reclassified",
            "Recommissioned",
@@ -55,7 +53,6 @@ VD_COLS = ["Acquired",
            "Speed",
            "Status",
            "Stricken",
-           "Succeeded by",
            "Tonnage",
            "Type"]
 
@@ -84,7 +81,7 @@ def scrapeForVesselURLs(vg, vls, pattern):
     response = requests.get(url=vg['url'])
     soup = BeautifulSoup(response.content, 'html.parser')
     all_links = soup.find_all("a")
-    print(f"Found {len(all_links)} links")
+    print(f"Found {len(all_links):,.0f} links")
 
     for link in all_links:
         href = link.get('href')
@@ -97,7 +94,7 @@ def scrapeForVesselURLs(vg, vls, pattern):
             ])
 
     if len(vls) > 0:
-        print(f"found {len(vls) - vls_len_start} vessel links "
+        print(f"Found {len(vls) - vls_len_start:,.0f} vessel links "
               + f"for {vg['group_type']}")
 
     return vls
@@ -126,7 +123,7 @@ def getVesselLinks(group_lists, pattern):
         vls = scrapeForVesselURLs(row, vls, pattern)
 
     vls.drop_duplicates('vessel_url', inplace=True)
-    print(f"found {len(vls)} vessel links")
+    print(f"Found {len(vls):,.0f} vessel links")
 
     return vls
 
@@ -166,26 +163,27 @@ def scrapeVesselData(vl):
             vd = None
 
         if vd is not None:
-            # Data description is in the first column; check for duplicates
-            # and increment where necessary
+            # Data description is in the first column; drop items we are not
+            # interested in
+            vd = vd[vd.iloc[:, 0].isin(VD_COLS)]
+
+            # check for duplicates and increment where necessary
             vd.iloc[:, 0] = utils.incrementDFValues(
                 vd.iloc[:, 0].astype(str))
 
             # Add on the vessel url and group information
             vd = pd.concat([vd, pd.DataFrame(
-                [['vessel_url', vl['vessel_url']],
-                 ['group_type', vl['group_type']],
-                 ['group_type_url', vl['group_type_url']]],
-                columns=list(vd.columns))])
+                            [['vessel_url', vl['vessel_url']],
+                             ['group_type', vl['group_type']],
+                             ['group_type_url', vl['group_type_url']]],
+                            columns=list(vd.columns))])
 
             # Set the data description items as the index
-            vd.set_index(
-                vd.columns[0], inplace=True, verify_integrity=True)
-            vd = vd.T
-            vd.set_index(
-                "vessel_url", inplace=True, verify_integrity=True)
+            vd.set_index(vd.columns[0], inplace=True, verify_integrity=True)
 
-    return vd
+            vd = vd.T
+            vd.set_index("vessel_url", inplace=True, verify_integrity=True)
+        return vd
 
 
 def getVesselData(vls, data_csv=None, error_csv=None):
@@ -207,8 +205,8 @@ def getVesselData(vls, data_csv=None, error_csv=None):
     num_urls = len(vls)
     url_attempted = 1
     for index, vl in vls.iterrows():
-        print(f"{url_attempted} of {num_urls} "
-              + f"{vl['group_type']} {vl['vessel_url']}")
+        print(f"Scraping URL {url_attempted:>5,.0f} of {num_urls:,.0f}; "
+              + f"current url is for {vl['group_type']} {vl['vessel_url']}")
 
         new_data = scrapeVesselData(vl)
         if new_data is not None:
@@ -224,6 +222,11 @@ def getVesselData(vls, data_csv=None, error_csv=None):
     if len(error_urls) > 0 and error_csv is not None:
         error_urls = pd.Series(error_urls)
         error_urls.to_csv(DATA_DIR + error_csv)
+        print(f"{len(error_urls):,.0f} error urls")
     else:
         print("No error urls!")
     return vd
+
+
+def loadVesselData(data_csv):
+    return pd.read_csv(DATA_DIR + data_csv)
