@@ -1,60 +1,14 @@
 import pandas as pd
 import requests
+import sys
 
 from bs4 import BeautifulSoup
 from datetime import timedelta
 from ratelimit import limits, sleep_and_retry
 
+import sswiki.constants as const
+import sswiki.date_formatting as dfmt
 import sswiki.utils as utils
-
-BASE_URL = "https://en.wikipedia.org/"
-STATUS_OK = 200
-
-DATA_DIR = "../data/"
-
-# Data frame columns for holding the links to each vessel article
-VL_COLS = ["group_type",
-           "group_type_url",
-           "vessel_url"]
-
-# Data items from the vessel article infobox to keep
-VD_COLS = ["Acquired",
-           "Active",
-           "Beam",
-           "Builder",
-           "Builders",
-           "Built",
-           "Cancelled",
-           "Christened",
-           "Class and type",
-           "Commissioned",
-           "Completed",
-           "Decommissioned",
-           "Displacement",
-           "Draft",
-           "Draught",
-           "Fate",
-           "Identification",
-           "In commission",
-           "In service",
-           "Laid down",
-           "Launched",
-           "Length",
-           "Lost",
-           "Maiden voyage",
-           "Name",
-           "Ordered",
-           "Out of service",
-           "Preserved",
-           "Reclassified",
-           "Recommissioned",
-           "Renamed",
-           "Retired",
-           "Speed",
-           "Status",
-           "Stricken",
-           "Tonnage",
-           "Type"]
 
 
 def scrapeForVesselURLs(vg, vls, pattern):
@@ -89,8 +43,8 @@ def scrapeForVesselURLs(vg, vls, pattern):
             vls = pd.concat([
                 vls,
                 pd.DataFrame(
-                     [[vg['group_type'], vg['url'], BASE_URL + href]],
-                     columns=VL_COLS)
+                     [[vg['group_type'], vg['url'], const.BASE_URL + href]],
+                     columns=const.VL_COLS)
             ])
 
     if len(vls) > 0:
@@ -117,7 +71,7 @@ def getVesselLinks(group_lists, pattern):
     A pandas data frame with columns for vessel group type, group type url, and
     the vessel article url
     """
-    vls = pd.DataFrame(columns=VL_COLS)
+    vls = pd.DataFrame(columns=const.VL_COLS)
 
     for index, row in group_lists.iterrows():
         vls = scrapeForVesselURLs(row, vls, pattern)
@@ -165,7 +119,7 @@ def scrapeVesselData(vl):
         if vd is not None:
             # Data description is in the first column; drop items we are not
             # interested in
-            vd = vd[vd.iloc[:, 0].isin(VD_COLS)]
+            vd = vd[vd.iloc[:, 0].isin(const.VD_COLS)]
 
             # check for duplicates and increment where necessary
             vd.iloc[:, 0] = utils.incrementDFValues(
@@ -200,7 +154,7 @@ def getVesselData(vls, data_csv=None, error_csv=None):
     Return:
     A pandas data frame with vessel data for the provided article urls in vls
     """
-    vd = pd.DataFrame(columns=VD_COLS)
+    vd = pd.DataFrame(columns=const.VD_COLS)
     error_urls = []
     num_urls = len(vls)
     url_attempted = 1
@@ -217,16 +171,43 @@ def getVesselData(vls, data_csv=None, error_csv=None):
         url_attempted += 1
 
     if len(vd) > 0 and data_csv is not None:
-        vd.to_csv(DATA_DIR + data_csv)
+        vd.to_csv(const.DATA_DIR + data_csv)
 
     if len(error_urls) > 0 and error_csv is not None:
         error_urls = pd.Series(error_urls)
-        error_urls.to_csv(DATA_DIR + error_csv)
+        error_urls.to_csv(const.DATA_DIR + error_csv)
         print(f"{len(error_urls):,.0f} error urls")
     else:
         print("No error urls!")
     return vd
 
 
-def loadVesselData(data_csv):
-    return pd.read_csv(DATA_DIR + data_csv)
+def convertDates(df):
+    """Converts dates to a consistent format.
+
+    Assumes that the relevant date columns are listed in the constant
+    'DT_COLS'. Converts dates to datetime string default i.e. 'YYYY-MM-DD'.
+
+    Keyword arguments:
+    df -- A pandas data frame with columns for vessel data
+
+    Return:
+    A pandas data frame with vessel data and consistent date format.
+    """
+    # For development / testing
+    df = df.sample(n=100)
+
+    # regex pattern for the duplicate column name suffix - see
+    # incrementDFValues()
+    incr_suffix = r'(?:\_\d+)?'
+    pat = (incr_suffix + "|").join(const.DT_COLS)
+    pat = r'(' + pat + r'(?:\_\d+)?' + r')'
+
+    dff_cols = df.filter(regex=pat, axis=1).columns
+    for col in dff_cols:
+        df[col] = dfmt.seriesToDateTime(df[col])
+
+    date_columns = df.select_dtypes(include=['datetime64']).columns.tolist()
+    df[date_columns] = df[date_columns].astype(str)
+
+    return df
