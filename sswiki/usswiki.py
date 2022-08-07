@@ -4,7 +4,7 @@ import requests
 import sys
 from bs4 import BeautifulSoup
 
-import sswiki.sswiki as sswiki
+import sswiki.constants as const
 
 
 def scrapeForGroupListsURLs(url):
@@ -54,7 +54,7 @@ def scrapeForGroupListsURLs(url):
 
     for group_href in group_hrefs:
         new_row = pd.DataFrame(
-            [[group_href.string, sswiki.BASE_URL + group_href['href']]],
+            [[group_href.string, const.BASE_URL + group_href['href']]],
             columns=COLUMNS)
 
         group_lists = pd.concat([group_lists, new_row])
