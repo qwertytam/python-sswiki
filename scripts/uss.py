@@ -16,7 +16,7 @@ LISTS_OF_LISTS_URL = const.BASE_URL + "/wiki/List_of_United_States_Navy_ships"
 # First find a list of vessels by type (e.g. battleship)
 # The lists of lists url points to an article that has a list of the Navy ships
 # by type (e.g. list of aircraft carriers, list of battleships)
-group_lists = usswiki.scrapeForGroupListsURLs(LISTS_OF_LISTS_URL)
+# group_lists = usswiki.scrapeForGroupListsURLs(LISTS_OF_LISTS_URL)
 
 # Now find the links to each vessel article,
 # then scrape the data from each article
@@ -26,10 +26,9 @@ group_lists = usswiki.scrapeForGroupListsURLs(LISTS_OF_LISTS_URL)
 #                                    'uss_errors.csv')
 
 vd = utils.loadVesselData(const.DATA_DIR + 'uss_data.csv')
-# print(vd.info(verbose=True))
-# sswiki.correctDateCol(vd, ['Commissioned'])
 vd = sswiki.convertDates(vd)
 vd = sswiki.convertLinearMeasures(vd)
 vd = sswiki.convertWeightMeasures(vd)
 vd = sswiki.convertSpeedMeasures(vd)
-vd.to_csv(const.DATA_DIR + 'uss_data_corr.csv')
+vd = sswiki.convertHullNo(vd)
+vd.to_csv(const.DATA_DIR + 'uss_data.csv')

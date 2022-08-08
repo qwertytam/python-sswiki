@@ -1,6 +1,5 @@
 import pandas as pd
 import requests
-import sys
 
 from bs4 import BeautifulSoup
 from datetime import timedelta
@@ -8,6 +7,7 @@ from ratelimit import limits, sleep_and_retry
 
 import sswiki.constants as const
 import sswiki.date_formatting as dfmt
+import sswiki.hull_no_formatting as hnfmt
 import sswiki.linear_mes_formatting as lmfmt
 import sswiki.speed_formatting as spfmt
 import sswiki.weight_formatting as wfmt
@@ -290,5 +290,21 @@ def convertSpeedMeasures(df):
     dff_cols = df.filter(regex=pat, axis=1).columns
     for col in dff_cols:
         df[col] = spfmt.seriesToKnots(df[col])
+
+    return df
+
+
+def convertHullNo(df):
+    """Converts speed meeasurements (knots) to a consistent
+    format.
+
+    Keyword arguments:
+    df -- A pandas data frame with columns for vessel data
+
+    Return:
+    A pandas data frame with vessel data and consistent measurement format.
+    """
+    df.columns.values[0] = 'vessel_url'
+    df = hnfmt.seriesToHullNo(df, 'vessel_url')
 
     return df
