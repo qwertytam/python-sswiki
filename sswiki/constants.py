@@ -3,6 +3,12 @@ STATUS_OK = 200
 
 BASE_URL = "https://en.wikipedia.org/"
 
+FT_TO_M = 0.3048
+IN_TO_M = FT_TO_M / 12
+
+LTONS_TO_MTONS = 1.016047
+STONS_TO_MTONS = 0.90718
+
 DATA_DIR = "../data/"
 
 # Data frame columns for holding the links to each vessel article
@@ -42,10 +48,10 @@ WT_MES = ["Displacement",
           "Tonnage"]
 
 # Speed measurements e.g. knots
-WT_MES = ["Speed"]
+SP_MES = ["Speed"]
 
 # Data items from the vessel article infobox to keep
-VD_COLS = DT_COLS + LN_MES + WT_MES + \
+VD_COLS = DT_COLS + LN_MES + WT_MES + SP_MES + \
     ["Builder",
      "Builders",
      "Built",
