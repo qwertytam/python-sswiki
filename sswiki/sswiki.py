@@ -9,6 +9,7 @@ from ratelimit import limits, sleep_and_retry
 import sswiki.constants as const
 import sswiki.date_formatting as dfmt
 import sswiki.linear_mes_formatting as lmfmt
+import sswiki.speed_formatting as spfmt
 import sswiki.weight_formatting as wfmt
 import sswiki.utils as utils
 
@@ -196,8 +197,6 @@ def convertDates(df):
     Return:
     A pandas data frame with vessel data and consistent date format.
     """
-    # For development / testing
-    df = df.sample(n=100)
 
     # regex pattern for the duplicate column name suffix - see
     # incrementDFValues()
@@ -257,8 +256,6 @@ def convertWeightMeasures(df):
     Return:
     A pandas data frame with vessel data and consistent measurement format.
     """
-    # For development / testing
-    # df = df.sample(n=1000)
 
     # regex pattern for the duplicate column name suffix - see
     # incrementDFValues()
@@ -283,23 +280,15 @@ def convertSpeedMeasures(df):
     Return:
     A pandas data frame with vessel data and consistent measurement format.
     """
-    # For development / testing
-    # df = df.sample(n=1000)
 
     # regex pattern for the duplicate column name suffix - see
     # incrementDFValues()
     incr_suffix = r'(?:\_\d+)?'
-    pat = (incr_suffix + "|").join(const.WT_MES)
+    pat = (incr_suffix + "|").join(const.SP_MES)
     pat = r'(' + pat + r'(?:\_\d+)?' + r')'
 
     dff_cols = df.filter(regex=pat, axis=1).columns
-    # print(df[dff_cols].sample(n=50))
-    # df.loc[~df['Displacement'].isna(), 'Displacement'].to_csv('../tmp/tonne.csv')
-    # sys.exit()
     for col in dff_cols:
-        df[col] = wfmt.seriesToKnots(df[col])
+        df[col] = spfmt.seriesToKnots(df[col])
 
-        sys.exit()
-
-    # print(df.loc[~df['Displacement'].isna(), 'Displacement'].sample(n=50))
     return df

@@ -9,6 +9,8 @@ IN_TO_M = FT_TO_M / 12
 LTONS_TO_MTONS = 1.016047
 STONS_TO_MTONS = 0.90718
 
+MPH_TO_KNTS = 1 / 1.15078
+
 DATA_DIR = "../data/"
 
 # Data frame columns for holding the links to each vessel article
