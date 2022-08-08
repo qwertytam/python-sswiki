@@ -8,6 +8,8 @@ from ratelimit import limits, sleep_and_retry
 
 import sswiki.constants as const
 import sswiki.date_formatting as dfmt
+import sswiki.linear_mes_formatting as lmfmt
+import sswiki.weight_formatting as wfmt
 import sswiki.utils as utils
 
 
@@ -210,4 +212,94 @@ def convertDates(df):
     date_columns = df.select_dtypes(include=['datetime64']).columns.tolist()
     df[date_columns] = df[date_columns].astype(str)
 
+    return df
+
+
+def convertLinearMeasures(df):
+    """Converts linear meeasurements (length, beam, draft) to a consistent
+    format.
+
+    Assumes that the relevant columns are listed in the constant
+    'LN_MES'. Converts all measures to metres and columns to numeric.
+
+    Keyword arguments:
+    df -- A pandas data frame with columns for vessel data
+
+    Return:
+    A pandas data frame with vessel data and consistent measurement format.
+    """
+
+    # regex pattern for the duplicate column name suffix - see
+    # incrementDFValues()
+    incr_suffix = r'(?:\_\d+)?'
+    pat = (incr_suffix + "|").join(const.LN_MES)
+    pat = r'(' + pat + r'(?:\_\d+)?' + r')'
+
+    dff_cols = df.filter(regex=pat, axis=1).columns
+    for col in dff_cols:
+        df[col] = lmfmt.seriesToMetres(df[col])
+
+    return df
+
+
+def convertWeightMeasures(df):
+    """Converts weight meeasurements (displacement, tonnage) to a consistent
+    format.
+
+    Assumes that the relevant columns are listed in the constant
+    'WT_MES'. Converts all measures to metric tons and columns to numeric. For
+    surface ships uses standard displacement if given; for submarines surface
+    displacement.
+
+    Keyword arguments:
+    df -- A pandas data frame with columns for vessel data
+
+    Return:
+    A pandas data frame with vessel data and consistent measurement format.
+    """
+    # For development / testing
+    # df = df.sample(n=1000)
+
+    # regex pattern for the duplicate column name suffix - see
+    # incrementDFValues()
+    incr_suffix = r'(?:\_\d+)?'
+    pat = (incr_suffix + "|").join(const.WT_MES)
+    pat = r'(' + pat + r'(?:\_\d+)?' + r')'
+
+    dff_cols = df.filter(regex=pat, axis=1).columns
+    for col in dff_cols:
+        df[col] = wfmt.seriesToTonnes(df[col])
+
+    return df
+
+
+def convertSpeedMeasures(df):
+    """Converts speed meeasurements (knots) to a consistent
+    format.
+
+    Keyword arguments:
+    df -- A pandas data frame with columns for vessel data
+
+    Return:
+    A pandas data frame with vessel data and consistent measurement format.
+    """
+    # For development / testing
+    # df = df.sample(n=1000)
+
+    # regex pattern for the duplicate column name suffix - see
+    # incrementDFValues()
+    incr_suffix = r'(?:\_\d+)?'
+    pat = (incr_suffix + "|").join(const.WT_MES)
+    pat = r'(' + pat + r'(?:\_\d+)?' + r')'
+
+    dff_cols = df.filter(regex=pat, axis=1).columns
+    # print(df[dff_cols].sample(n=50))
+    # df.loc[~df['Displacement'].isna(), 'Displacement'].to_csv('../tmp/tonne.csv')
+    # sys.exit()
+    for col in dff_cols:
+        df[col] = wfmt.seriesToKnots(df[col])
+
+        sys.exit()
+
+    # print(df.loc[~df['Displacement'].isna(), 'Displacement'].sample(n=50))
     return df
