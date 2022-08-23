@@ -356,26 +356,34 @@ def getVesselData(vls, gcdata_csv=None, shdata_csv=None, error_csv=None):
     return gc, sh
 
 
-def convertDates(df):
-    """Converts dates to a consistent format.
+def removeHTMLArtifacts(df):
+    """Remove HTML artefacts from data frame in place
 
-    Assumes that the relevant date columns are listed in the constant
-    'DT_COLS'. Converts dates to datetime string default i.e. 'YYYY-MM-DD'.
+    Usually find some leftover css and other html artefacts in the scraped
+    data.
+
+    Keyword arguments:
+    df -- A pandas data frame to clean
+
+    Return:
+    None - data frame cleaned in place
+    """
+    pat = r'\.mw\-parser.+\}'
+    repl = ""
+    df.replace(pat, value=repl, regex=True, inplace=True)
+
+
+def convertDates(df, cols):
+    """Converts dates to datetime string default i.e. 'YYYY-MM-DD'.
 
     Keyword arguments:
     df -- A pandas data frame with columns for vessel data
+    cols -- List of column names to convert
 
     Return:
     A pandas data frame with vessel data and consistent date format.
     """
-
-    # regex pattern for the duplicate column name suffix - see
-    # incrementDFValues()
-    incr_suffix = r'(?:\_\d+)?'
-    pat = (incr_suffix + "|").join(const.DT_COLS)
-    pat = r'(' + pat + r'(?:\_\d+)?' + r')'
-
-    dff_cols = df.filter(regex=pat, axis=1).columns
+    dff_cols = utils.findDFCols(df, cols)
     for col in dff_cols:
         df[col] = dfmt.seriesToDateTime(df[col])
 
@@ -385,80 +393,55 @@ def convertDates(df):
     return df
 
 
-def convertLinearMeasures(df):
-    """Converts linear meeasurements (length, beam, draft) to a consistent
-    format.
-
-    Assumes that the relevant columns are listed in the constant
-    'LN_MES'. Converts all measures to metres and columns to numeric.
+def convertLinearMeasures(df, cols):
+    """Converts linear measurements (length, beam, draft) to numeric metres.
 
     Keyword arguments:
     df -- A pandas data frame with columns for vessel data
+    cols -- List of column names to convert
 
     Return:
     A pandas data frame with vessel data and consistent measurement format.
     """
-
-    # regex pattern for the duplicate column name suffix - see
-    # incrementDFValues()
-    incr_suffix = r'(?:\_\d+)?'
-    pat = (incr_suffix + "|").join(const.LN_MES)
-    pat = r'(' + pat + r'(?:\_\d+)?' + r')'
-
-    dff_cols = df.filter(regex=pat, axis=1).columns
+    dff_cols = utils.findDFCols(df, cols)
     for col in dff_cols:
         df[col] = lmfmt.seriesToMetres(df[col])
 
     return df
 
 
-def convertWeightMeasures(df):
-    """Converts weight meeasurements (displacement, tonnage) to a consistent
-    format.
-
-    Assumes that the relevant columns are listed in the constant
-    'WT_MES'. Converts all measures to metric tons and columns to numeric. For
-    surface ships uses standard displacement if given; for submarines surface
-    displacement.
+def convertWeightMeasures(df, cols):
+    """Converts weight measurements (displacement, tonnage) to numeric metric
+    tons.
+    
+    For surface ships uses standard displacement if given; for submarines
+    surface displacement.
 
     Keyword arguments:
     df -- A pandas data frame with columns for vessel data
+    cols -- List of column names to convert
 
     Return:
     A pandas data frame with vessel data and consistent measurement format.
     """
-
-    # regex pattern for the duplicate column name suffix - see
-    # incrementDFValues()
-    incr_suffix = r'(?:\_\d+)?'
-    pat = (incr_suffix + "|").join(const.WT_MES)
-    pat = r'(' + pat + r'(?:\_\d+)?' + r')'
-
-    dff_cols = df.filter(regex=pat, axis=1).columns
+    dff_cols = utils.findDFCols(df, cols)
     for col in dff_cols:
         df[col] = wfmt.seriesToTonnes(df[col])
 
     return df
 
 
-def convertSpeedMeasures(df):
-    """Converts speed meeasurements (knots) to a consistent
-    format.
+def convertSpeedMeasures(df, cols):
+    """Converts speed measurements to numeric knots.
 
     Keyword arguments:
     df -- A pandas data frame with columns for vessel data
+    cols -- List of column names to convert
 
     Return:
     A pandas data frame with vessel data and consistent measurement format.
     """
-
-    # regex pattern for the duplicate column name suffix - see
-    # incrementDFValues()
-    incr_suffix = r'(?:\_\d+)?'
-    pat = (incr_suffix + "|").join(const.SP_MES)
-    pat = r'(' + pat + r'(?:\_\d+)?' + r')'
-
-    dff_cols = df.filter(regex=pat, axis=1).columns
+    dff_cols = utils.findDFCols(df, cols)
     for col in dff_cols:
         df[col] = spfmt.seriesToKnots(df[col])
 
