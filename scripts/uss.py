@@ -7,6 +7,11 @@ sys.path.insert(0, path)
 
 import sswiki.sswiki as sswiki
 import sswiki.constants as const
+import sswiki.utils as utils
+
+# For GitBash on Windows 10
+sys.stdin.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding='utf-8')
 
 # Script static variables
 ARTICLE_PATTERN = "wiki/USS_"
@@ -31,11 +36,11 @@ TEST_VLINKS = ["https://en.wikipedia.org/wiki/HMS_Holmes_(K581)",
 # First find a list of vessels by type (e.g. battleship)
 # The lists of lists url points to an article that has a list of the Navy ships
 # by type (e.g. list of aircraft carriers, list of battleships)
-group_lists = sswiki.scrapeForGroupListsURLs(LISTS_OF_LISTS_URL)
+# group_lists = sswiki.scrapeForGroupListsURLs(LISTS_OF_LISTS_URL)
 
 # Now find the links to each vessel article,
 # then scrape the data from each article
-vessel_links = sswiki.getVesselLinks(group_lists, ARTICLE_PATTERN)
+# vessel_links = sswiki.getVesselLinks(group_lists, ARTICLE_PATTERN)
 # vessel_links.to_csv("../tmp/vessel_links.csv")
 
 # vl = pd.read_csv("../tmp/vessel_links.csv")
@@ -43,15 +48,19 @@ vessel_links = sswiki.getVesselLinks(group_lists, ARTICLE_PATTERN)
 # vessel_links = vessel_links.sample(1000)
 # print(vessel_links)
 
-gc, sh = sswiki.getVesselData(vessel_links,
-                              'gc_data.csv',
-                              'sh_data.csv',
-                              'errors.csv')
+# gc, sh = sswiki.getVesselData(vessel_links,
+# 'gc_data.csv',
+# 'sh_data.csv',
+# 'errors.csv')
 
-# vd = utils.loadVesselData(const.DATA_DIR + 'uss_data.csv')
-# vd = sswiki.convertDates(vd)
-# vd = sswiki.convertLinearMeasures(vd)
-# vd = sswiki.convertWeightMeasures(vd)
-# vd = sswiki.convertSpeedMeasures(vd)
-# vd = sswiki.convertHullNo(vd)
-# vd.to_csv(const.DATA_DIR + 'uss_data.csv')
+# Format general characteristics
+gc = utils.loadVesselData(const.DATA_DIR + 'gc_data.csv', index_col='uuid')
+gc = utils.dfStrNormalize(gc)
+gc = sswiki.convertLinearMeasures(gc, const.LNMES_GC_COLS)
+gc = sswiki.convertWeightMeasures(gc, const.WTMES_GC_COLS)
+gc = sswiki.convertSpeedMeasures(gc, const.SPMES_GC_COLS)
+# gc = sswiki.convertHullNo(gc)
+gc.to_csv(const.DATA_DIR + 'gc_data.csv')
+# gc.to_csv('../tmp/' + 'gc_data.csv')
+
+# gc = sswiki.convertDates(gc)
