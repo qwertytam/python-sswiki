@@ -1,7 +1,7 @@
 
 STATUS_OK = 200
 
-BASE_URL = "https://en.wikipedia.org/"
+BASE_URL = "https://en.wikipedia.org"
 
 FT_TO_M = 0.3048
 IN_TO_M = FT_TO_M / 12
