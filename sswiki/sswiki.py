@@ -1,5 +1,6 @@
 import pandas as pd
 import requests
+import uuid
 
 from bs4 import BeautifulSoup
 from datetime import timedelta
@@ -12,6 +13,8 @@ import sswiki.linear_mes_formatting as lmfmt
 import sswiki.speed_formatting as spfmt
 import sswiki.weight_formatting as wfmt
 import sswiki.utils as utils
+
+import sys
 
 
 def scrapeForVesselURLs(vg, vls, pattern):
@@ -96,12 +99,13 @@ def scrapeVesselData(vl):
 
     Return:
     A pandas data frame with vessel data for the provided article url in vl
+    with columns 'desc' and 'data'. Will return `None` if infoxbox not found or
+    unexpected shape (less than two columns).
     """
 
     response = requests.get(url=vl["vessel_url"])
     soup = BeautifulSoup(response.content, 'html.parser')
 
-    # Data contained in first infobox in article page
     infobox = soup.find("table", class_="infobox")
 
     if infobox is None:
@@ -111,78 +115,189 @@ def scrapeVesselData(vl):
             # Assume vessel data is in the first two columns of the
             # first table found by read_html
             vd = pd.read_html(str(infobox))[0].iloc[:, 0:2]
-
             if len(vd.columns) < 2:
                 vd = None
-        except ValueError as exc:
-            msg = f"No data found for {vl['vessel_url']}\n{exc}"
+            else:
+                vd.columns = ['desc', 'data']
+                vd.fillna(value="N/A", inplace=True)
+
+        except ValueError as e:
+            msg = f"No data found for {vl['vessel_url']}\n{e}\nReturning None"
             print(msg)
             vd = None
 
-        if vd is not None:
-            # Data description is in the first column; drop items we are not
-            # interested in
-            vd = vd[vd.iloc[:, 0].isin(const.VD_COLS)]
+    return vd
 
-            # check for duplicates and increment where necessary
-            vd.iloc[:, 0] = utils.incrementDFValues(
-                vd.iloc[:, 0].astype(str))
 
-            # Add on the vessel url and group information
-            vd = pd.concat([vd, pd.DataFrame(
-                            [['vessel_url', vl['vessel_url']],
-                             ['group_type', vl['group_type']],
-                             ['group_type_url', vl['group_type_url']]],
+def getVesselGenCharacteristics(vd):
+    """Gets 'general characteristics' of vessel from provided vessel data.
+
+    Looks for the pattern r'^general characteristics' (case insentive) in the
+    'desc' column; then splits the DataFrame, with all rows after the
+    matching row returned and dropped from 'vd' (in place).
+
+    Keyword arguments:
+    vd -- A two column pandas data frame with columns 'desc' for description
+        and 'data' for data. 'vd' is modified with matching returned dropped.
+
+    Return:
+    A pandas data frame with general characterisic vessel data.
+    """
+    pat = r'^general characteristics'
+    try:
+        gc_row = vd.index[vd['desc'].str.match(pat, case=False)].tolist()[0]
+    except IndexError as e:
+        gc = None
+    else:
+        gc = vd.iloc[gc_row + 1:, :]
+        vd.drop(vd.index[gc_row:], inplace=True)
+
+    return gc
+
+
+def getVesselServiceHistory(vd):
+    """Gets 'service history' of vessel from provided vessel data.
+
+    Looks for the pattern r'^name$' or r'^history$' (case insentive) in the
+    'desc' column. Splits 'vd' at each occurence and returns it.
+
+    Keyword arguments:
+    vd -- A two column pandas data frame with columns 'desc' for description
+        and 'data' for data.
+
+    Return:
+    A list of pandas data frames, with each data frame vessel service history.
+    """
+    pat = r'^name$'
+    idx = vd.index[vd['desc'].str.match(pat, case=False)].tolist()
+    idx = [max(0, x - 1) for x in idx] + [vd.shape[0]]
+    # print(f"\nidx:{idx}\n")
+    if len(idx) == 1:
+        # See if "History" is found
+        # print("Using r'history")
+        pat = r'^history$'
+        idx = vd.index[vd['desc'].str.match(pat, case=False)].tolist()
+        idx = [x + 1 for x in idx] + [vd.shape[0]]
+
+    if len(idx) == 1:
+        idx.insert(0, 1)  # for case not captured above
+
+    # list of data frames split at all indices
+    sh = [vd.iloc[idx[n]:idx[n + 1]] for n in range(len(idx) - 1)]
+
+    return sh
+
+
+def cleanVesselData(vd, vl, country=None, keep_cols=const.VD_COLS):
+    """Cleans provided data frame and appends relevant information.
+
+    Keeps columns as provided, appends vessel link and country information,
+    then transposes and adds a 'uuid' for unique identification.
+
+    Keyword arguments:
+    vd -- A two column pandas data frame with columns 'desc' for description
+        and 'data' for data.
+    vl -- A three column pandas data frame with columns 'vessel_url',
+        'group_type', and 'group_type_url'
+    country -- String country name to include in return.
+    keep_cols -- List of string column names to keep in `vd`.
+
+    Return:
+    The cleaned data frame 'vd'.
+    """
+    # Data description is in the first column; drop items we are not
+    # interested in
+    vd = vd[vd.iloc[:, 0].isin(keep_cols)].copy()
+
+    # check for duplicates and increment where necessary
+    vd.iloc[:, 0] = utils.incrementDFValues(vd.iloc[:, 0].astype(str))
+
+    # Add on the vessel url and group information
+    vd = pd.concat([vd, pd.DataFrame(
+                    [['vessel_url', vl['vessel_url']],
+                     ['group_type', vl['group_type']],
+                     ['group_type_url', vl['group_type_url']],
+                     ['uuid', uuid.uuid4().hex]],
+                    columns=list(vd.columns))])
+
+    if country:
+        vd = pd.concat([vd, pd.DataFrame(
+                            [['country', country]],
                             columns=list(vd.columns))])
 
-            # Set the data description items as the index
-            vd.set_index(vd.columns[0], inplace=True, verify_integrity=True)
+    # Set the data description items as the index
+    vd.set_index(vd.columns[0], inplace=True, verify_integrity=True)
 
-            vd = vd.T
-            vd.set_index("vessel_url", inplace=True, verify_integrity=True)
-        return vd
+    vd = vd.T
+    vd.set_index('uuid', inplace=True, verify_integrity=True)
+    return vd
 
 
-def getVesselData(vls, data_csv=None, error_csv=None):
+def getVesselData(vls, gcdata_csv=None, shdata_csv=None, error_csv=None):
     """Scrapes Wikipedia articles for vessel information.
 
     Keyword arguments:
     vls -- A pandas data frame with columns for vessel group type,
         group type url, and the vessel article url
-    data_csv -- path and file name string to write data to; ignored if None;
-        "../data/" is pre-pended to the provided string
+    gcdata_csv -- path and file name string to write vessel general
+        characterisic data to; ignored if None; "../data/" is pre-pended to
+        the provided string
+    shdata_csv -- path and file name string to write vessel service
+        history data to; ignored if None; "../data/" is pre-pended to
+        the provided string
     error_csv -- path and file name string to store urls that returned an
         error; ignored if None; "../data/" is pre-pended to the provided string
 
     Return:
-    A pandas data frame with vessel data for the provided article urls in vls
+    A tuple of two pandas data frame (gc, sh); gc for vessel general
+        characterisics and sh for vessel service history
     """
-    vd = pd.DataFrame(columns=const.VD_COLS)
+    gc = pd.DataFrame(columns=const.VD_COLS)
+    sh = pd.DataFrame(columns=const.VD_COLS)
     error_urls = []
     num_urls = len(vls)
-    url_attempted = 1
+    url_no = 1
+    print_int = 50
+
     for index, vl in vls.iterrows():
-        print(f"Scraping URL {url_attempted:>5,.0f} of {num_urls:,.0f}; "
-              + f"current url is for {vl['group_type']} {vl['vessel_url']}")
+        if url_no % print_int == 0 or url_no == 1 or url_no == num_urls:
+            print(f"Scraping URL {url_no:>5,.0f} of {num_urls:,.0f}; "
+                  + f"current url is for {vl['group_type']} "
+                  + f"{vl['vessel_url']}")
 
         new_data = scrapeVesselData(vl)
         if new_data is not None:
-            vd = pd.concat([vd, new_data])
+            gc_new = getVesselGenCharacteristics(new_data)
+            if gc_new is not None:
+                gc_new = cleanVesselData(gc_new, vl)
+                gc = pd.concat([gc, gc_new])
+            else:
+                error_urls.append(vl['vessel_url'])
+
+            sh_new = getVesselServiceHistory(new_data)
+            for shn in sh_new:
+                shn = cleanVesselData(shn, vl, shn.iloc[0, 0])
+                sh = pd.concat([sh, shn])
+
         else:
             error_urls.append(vl['vessel_url'])
 
-        url_attempted += 1
+        url_no += 1
 
-    if len(vd) > 0 and data_csv is not None:
-        vd.to_csv(const.DATA_DIR + data_csv)
+    if len(gc) > 0 and gcdata_csv is not None:
+        gc.to_csv(const.DATA_DIR + gcdata_csv, index_label='uuid')
+
+    if len(sh) > 0 and shdata_csv is not None:
+        sh.to_csv(const.DATA_DIR + shdata_csv, index_label='uuid')
 
     if len(error_urls) > 0 and error_csv is not None:
         error_urls = pd.Series(error_urls)
-        error_urls.to_csv(const.DATA_DIR + error_csv)
+        error_urls.to_csv(const.DATA_DIR + error_csv, index=False)
         print(f"{len(error_urls):,.0f} error urls")
     else:
         print("No error urls!")
-    return vd
+
+    return gc, sh
 
 
 def convertDates(df):
