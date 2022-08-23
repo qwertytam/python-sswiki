@@ -1,12 +1,10 @@
 # Hacky way to import modules instead of using setup.py or similiar
 from pathlib import Path
-import pandas as pd
+# import pandas as pd
 import sys
 path = str(Path(Path(__file__).parent.absolute()).parent.absolute())
 sys.path.insert(0, path)
 
-# import sswiki.utils as utils
-import sswiki.usswiki as usswiki
 import sswiki.sswiki as sswiki
 import sswiki.constants as const
 
@@ -33,7 +31,7 @@ TEST_VLINKS = ["https://en.wikipedia.org/wiki/HMS_Holmes_(K581)",
 # First find a list of vessels by type (e.g. battleship)
 # The lists of lists url points to an article that has a list of the Navy ships
 # by type (e.g. list of aircraft carriers, list of battleships)
-group_lists = usswiki.scrapeForGroupListsURLs(LISTS_OF_LISTS_URL)
+group_lists = sswiki.scrapeForGroupListsURLs(LISTS_OF_LISTS_URL)
 
 # Now find the links to each vessel article,
 # then scrape the data from each article
