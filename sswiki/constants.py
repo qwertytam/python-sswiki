@@ -18,52 +18,52 @@ VL_COLS = ["group_type",
            "group_type_url",
            "vessel_url"]
 
-
 # Data items from the vessel article infobox that are dates
-DT_COLS = ["Acquired",
-           "Active",
-           "Cancelled",
-           "Christened",
-           "Commissioned",
-           "Completed",
-           "Decommissioned",
-           "Laid down",
-           "Launched",
-           "Lost",
-           "Maiden voyage",
-           "Ordered",
-           "Out of service",
-           "Recommissioned",
-           "Renamed",
-           "Retired",
-           "Stricken"]
+DT_SH_COLS = ["Acquired",
+              "Active",
+              "Cancelled",
+              "Christened",
+              "Commissioned",
+              "Completed",
+              "Decommissioned",
+              "Laid down",
+              "Launched",
+              "Lost",
+              "Maiden voyage",
+              "Ordered",
+              "Out of service",
+              "Recommissioned",
+              "Renamed",
+              "Retired",
+              "Stricken"]
 
 # Linear measurements e.g. feet, metres
-LN_MES = ["Beam",
-          "Draft",
-          "Draught",
-          "Length",
-          ]
+LNMES_GC_COLS = ["Beam",
+                 "Draft",
+                 "Draught",
+                 "Length"]
 
 # Weight measurements e.g. tons, long tons, short tons
-WT_MES = ["Displacement",
-          "Tonnage"]
+WTMES_GC_COLS = ["Displacement",
+                 "Tonnage"]
 
 # Speed measurements e.g. knots
-SP_MES = ["Speed"]
+SPMES_GC_COLS = ["Speed"]
 
-# Data items from the vessel article infobox to keep
-VD_COLS = DT_COLS + LN_MES + WT_MES + SP_MES + \
-    ["Builder",
-     "Builders",
-     "Built",
-     "Class and type",
-     "Fate",
-     "Identification",
-     "In commission",
-     "In service",
-     "Name",
-     "Preserved",
-     "Reclassified",
-     "Status",
-     "Type"]
+NONMES_GC_COLS = ["Class and type",
+                  "Identification",
+                  "Type"]
+
+NONMES_SH_COLS = ["Builder",
+                  "Builders",
+                  "Built",
+                  "Fate",
+                  "In commission",
+                  "In service",
+                  "Name",
+                  "Preserved",
+                  "Reclassified",
+                  "Status"]
+
+GC_COLS = LNMES_GC_COLS + WTMES_GC_COLS + SPMES_GC_COLS + NONMES_GC_COLS
+SH_COLS = DT_SH_COLS + NONMES_SH_COLS

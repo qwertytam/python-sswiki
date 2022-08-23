@@ -188,7 +188,7 @@ def getVesselServiceHistory(vd):
     return sh
 
 
-def cleanVesselData(vd, vl, country=None, keep_cols=const.VD_COLS):
+def cleanVesselData(vd, vl, keep_cols, country=None):
     """Cleans provided data frame and appends relevant information.
 
     Keeps columns as provided, appends vessel link and country information,
@@ -252,8 +252,8 @@ def getVesselData(vls, gcdata_csv=None, shdata_csv=None, error_csv=None):
     A tuple of two pandas data frame (gc, sh); gc for vessel general
         characterisics and sh for vessel service history
     """
-    gc = pd.DataFrame(columns=const.VD_COLS)
-    sh = pd.DataFrame(columns=const.VD_COLS)
+    gc = pd.DataFrame(columns=const.GC_COLS)
+    sh = pd.DataFrame(columns=const.SH_COLS)
     error_urls = []
     num_urls = len(vls)
     url_no = 1
@@ -269,14 +269,14 @@ def getVesselData(vls, gcdata_csv=None, shdata_csv=None, error_csv=None):
         if new_data is not None:
             gc_new = getVesselGenCharacteristics(new_data)
             if gc_new is not None:
-                gc_new = cleanVesselData(gc_new, vl)
+                gc_new = cleanVesselData(gc_new, vl, const.GC_COLS)
                 gc = pd.concat([gc, gc_new])
             else:
                 error_urls.append(vl['vessel_url'])
 
             sh_new = getVesselServiceHistory(new_data)
             for shn in sh_new:
-                shn = cleanVesselData(shn, vl, shn.iloc[0, 0])
+                shn = cleanVesselData(shn, vl, const.SH_COLS, shn.iloc[0, 0])
                 sh = pd.concat([sh, shn])
 
         else:
