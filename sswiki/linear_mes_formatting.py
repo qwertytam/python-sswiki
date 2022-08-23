@@ -20,6 +20,7 @@ def extractMes(df, col_fr, col_to, pat, repl=None):
     Return:
     A pandas series with recognized measurements [xxx]]
     """
+    ROUND_DP = 3
     num_cols = len(df.columns)
     df[col_fr] = df[col_fr].str.normalize('NFKD')
 
@@ -31,10 +32,12 @@ def extractMes(df, col_fr, col_to, pat, repl=None):
     if repl[0] == 'm':
         df['extract'] = df['mq']
     elif repl[0] == 'f':
-        df['extract'] = df['ftq'].astype(float) * const.FT_TO_M
+        df['extract'] = np.round(
+            df['ftq'].astype(float) * const.FT_TO_M, ROUND_DP)
 
     if len(repl) > 1 and repl[1] == 'i':
-        df['extract'] += df['inq'].astype(float) * const.IN_TO_M
+        df['extract'] = np.round(
+            df['extract'] + df['inq'].astype(float) * const.IN_TO_M, ROUND_DP)
 
     df[col_to] = np.where(df['extract'].isna(), df[col_to], df['extract'])
     df.drop(df.columns[[*range(num_cols, len(df.columns))]],

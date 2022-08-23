@@ -20,7 +20,7 @@ def extractWeight(df, col_fr, col_to, pat, repl=None):
     Return:
     A pandas series with recognized measurements [xxx]]
     """
-
+    ROUND_DP = 0
     num_cols = len(df.columns)
     df[col_fr] = df[col_fr].str.normalize('NFKD')
 
@@ -47,7 +47,9 @@ def extractWeight(df, col_fr, col_to, pat, repl=None):
         df['extract'] = df['qk'].astype(float) * 1000 + df['qh'].astype(float)
         df['extract'] = df['extract'] * const.STONS_TO_MTONS
 
-    df[col_to] = np.where(df['extract'].isna(), df[col_to], df['extract'])
+    df[col_to] = np.where(df['extract'].isna(),
+                          df[col_to],
+                          np.round(df['extract'], ROUND_DP))
     df.drop(df.columns[[*range(num_cols, len(df.columns))]],
             axis=1, inplace=True)
 
