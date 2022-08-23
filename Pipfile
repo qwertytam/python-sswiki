@@ -9,6 +9,8 @@ requests = "*"
 bs4 = "*"
 ratelimit = "*"
 lxml = "*"
+html5lib = "*"
+uuid = "*"
 
 [dev-packages]
 
