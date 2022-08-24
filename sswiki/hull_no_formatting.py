@@ -34,17 +34,14 @@ def extractHullNo(df, col_fr, col_ht, col_hn, pat):
 
 
 def seriesToHullNo(df, col_fr):
-    """Convert mix of speed measure formats in a pandas Series to knots.
-
-    Uses the first match in each data row. Where there is more than one number
-    in each row, the Wikipedia data first number is typically [xxx].
-
+    """Use vessel url to extract vessel hull type and number
 
     Keyword arguments:
-    sf -- A panda series to convert
+    df -- A panda data frame with column name provided by `col_fr`
+    col_fr -- Column name with the Wikiepdia vessel article url
 
     Return:
-    A pandas series with recognized measures as knots.
+    A pandas data frame with additional columns `Hull_type` and `Hull_no`
     """
 
     df['Hull_type'] = np.nan

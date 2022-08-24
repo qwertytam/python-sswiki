@@ -449,16 +449,14 @@ def convertSpeedMeasures(df, cols):
 
 
 def convertHullNo(df):
-    """Converts speed meeasurements (knots) to a consistent
-    format.
+    """Use vessel url to extract vessel hull type and number
 
     Keyword arguments:
-    df -- A pandas data frame with columns for vessel data
+    df -- A panda data frame with column name provided by `vessel_url`
 
     Return:
-    A pandas data frame with vessel data and consistent measurement format.
+    A pandas data frame with additional columns `Hull_type` and `Hull_no`
     """
-    df.columns.values[0] = 'vessel_url'
     df = hnfmt.seriesToHullNo(df, 'vessel_url')
 
     return df
