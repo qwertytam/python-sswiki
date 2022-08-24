@@ -1,4 +1,6 @@
 import pandas as pd
+import webbrowser as wb
+
 import sswiki.constants as const
 
 
@@ -88,3 +90,13 @@ def findDFCols(df, cols):
     pat = r'(' + pat + r'(?:\_\d+)?' + r')'
 
     return df.filter(regex=pat, axis=1).columns
+
+
+def openLinks(sf):
+    """Opens urls provided in pandas series
+
+    Keyword arguments:
+    sf -- Series with urls as values
+
+    """
+    sf.apply(lambda x: wb.open(x))
