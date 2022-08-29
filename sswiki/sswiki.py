@@ -8,6 +8,7 @@ from datetime import timedelta
 from ratelimit import limits, sleep_and_retry
 
 import sswiki.constants as const
+import sswiki.country_names as cnames
 import sswiki.date_formatting as dfmt
 import sswiki.hull_no_formatting as hnfmt
 import sswiki.linear_mes_formatting as lmfmt
@@ -227,10 +228,8 @@ def getVesselServiceHistory(vd):
     pat = r'^name$'
     idx = vd.index[vd['desc'].str.match(pat, case=False)].tolist()
     idx = [max(0, x - 1) for x in idx] + [vd.shape[0]]
-    # print(f"\nidx:{idx}\n")
     if len(idx) == 1:
         # See if "History" is found
-        # print("Using r'history")
         pat = r'^history$'
         idx = vd.index[vd['desc'].str.match(pat, case=False)].tolist()
         idx = [x + 1 for x in idx] + [vd.shape[0]]
@@ -244,7 +243,7 @@ def getVesselServiceHistory(vd):
     return sh
 
 
-def cleanVesselData(vd, vl, keep_cols, country=None):
+def cleanVesselData(vd, vl, keep_cols, country=None, debugging=None):
     """Cleans provided data frame and appends relevant information.
 
     Keeps columns as provided, appends vessel link and country information,
@@ -255,8 +254,9 @@ def cleanVesselData(vd, vl, keep_cols, country=None):
         and 'data' for data.
     vl -- A three column pandas data frame with columns 'vessel_url',
         'group_type', and 'group_type_url'
-    country -- String country name to include in return.
     keep_cols -- List of string column names to keep in `vd`.
+    country -- String country name to include in return.
+    debugging -- String of information to included in 'debugging' column
 
     Return:
     The cleaned data frame 'vd'.
@@ -279,6 +279,11 @@ def cleanVesselData(vd, vl, keep_cols, country=None):
     if country:
         vd = pd.concat([vd, pd.DataFrame(
                             [['country', country]],
+                            columns=list(vd.columns))])
+
+    if debugging:
+        vd = pd.concat([vd, pd.DataFrame(
+                            [['debugging', debugging]],
                             columns=list(vd.columns))])
 
     # Set the data description items as the index
@@ -332,7 +337,35 @@ def getVesselData(vls, gcdata_csv=None, shdata_csv=None, error_csv=None):
 
             sh_new = getVesselServiceHistory(new_data)
             for shn in sh_new:
-                shn = cleanVesselData(shn, vl, const.SH_COLS, shn.iloc[0, 0])
+                # If we find one of these entries, then we will ignore
+                # Usually happens were redict to a "list of lists" page occurs
+                if shn['desc'].isin(cnames.DROP).any():
+                    print(f"\nDropping {vl['vessel_url']}")
+                    error_urls.append(vl['vessel_url'])
+                    continue
+
+                # If any entries from 'desc' match country names to be
+                # replaced, then replace them -- note potential for
+                # non-country name columns to be caught up here
+                # Finally, find location for any countries in the "IN_USE" list
+                cname_locs = shn['desc'].\
+                    replace(cnames.REPL).\
+                    isin(cnames.IN_USE)
+
+                # Only get the first entry -- note potential to drop data here
+                country_name = utils.getFirst(shn.loc[cname_locs, 'desc'].
+                                              replace(cnames.REPL).to_list())
+
+                # For debugging purposes
+                ignored_cnames = shn.loc[~cname_locs & ~shn['desc'].
+                                         isin(const.SH_COLS), 'desc'].to_list()
+
+                shn = cleanVesselData(shn,
+                                      vl,
+                                      const.SH_COLS,
+                                      country_name,
+                                      ignored_cnames)
+
                 sh = pd.concat([sh, shn])
 
         else:
@@ -413,7 +446,7 @@ def convertLinearMeasures(df, cols):
 def convertWeightMeasures(df, cols):
     """Converts weight measurements (displacement, tonnage) to numeric metric
     tons.
-    
+
     For surface ships uses standard displacement if given; for submarines
     surface displacement.
 
