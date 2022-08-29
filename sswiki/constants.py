@@ -60,10 +60,14 @@ NONMES_SH_COLS = ["Builder",
                   "Builders",
                   "Built",
                   "Fate",
+                  "Identification",
                   "In commission",
                   "Name",
+                  "Operator",
+                  "Owner",
                   "Reclassified",
-                  "Status"]
+                  "Status",
+                  "Yard number"]
 
 # Combined column names
 GC_COLS = LNMES_GC_COLS + WTMES_GC_COLS + SPMES_GC_COLS + NONMES_GC_COLS
