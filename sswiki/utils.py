@@ -32,7 +32,7 @@ def loadVesselData(data_csv, **kwargs):
     """
     return pd.read_csv(const.DATA_DIR + data_csv,
                        dtype='str',
-                       encoding="utf-8",
+                       encoding='utf-8',
                        **kwargs)
 
 
@@ -100,3 +100,17 @@ def openLinks(sf):
 
     """
     sf.apply(lambda x: wb.open(x))
+
+
+def getFirst(some_list):
+    """Return first item of a non-empty list
+
+    Keyword arguments:
+    some_list -- List to return first item from
+
+    Return:
+    First item from the list; if list is empty, then `None`
+    """
+    if some_list:
+        return some_list[0]
+    return None
