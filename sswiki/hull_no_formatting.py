@@ -33,38 +33,21 @@ def extractHullNo(df, col_fr, col_ht, col_hn, pat):
     return df
 
 
-def seriesToHullNo(df, col_fr):
-    """Use vessel url to extract vessel hull type and number
+def seriesToHullNo(df, col_fr, pats, ht_col, hn_col):
+    """Extract vessel hull type and number from provided column
 
     Keyword arguments:
     df -- A panda data frame with column name provided by `col_fr`
     col_fr -- Column name with the Wikiepdia vessel article url
+    pats -- List of regex patterns to use to extract. Should have group name
+        `ht` for 'Hull_type' and `hn` for 'Hull_no'
+    ht_col -- Column name to store hull type in
+    hn_col -- Column name to store hull number in
 
     Return:
     A pandas data frame with additional columns `Hull_type` and `Hull_no`
     """
-
-    df['Hull_type'] = np.nan
-    df['Hull_no'] = np.nan
-
-    # (XXX-DDD)
-    pat = r'\((?P<ht>[a-zA-Z]+)\-?(?P<hn>\d+)\)$'
-    df = extractHullNo(df, col_fr, 'Hull_type', 'Hull_no', pat)
-
-    # (YYYY)
-    pat = r'\((?P<ht>)(?P<hn>\d{4})\)$'
-    df = extractHullNo(df, col_fr, 'Hull_type', 'Hull_no', pat)
-
-    # (XXX(X)-DDD)
-    pat = r'\((?P<ht>[a-zA-Z]+\(\w+\))\-?(?P<hn>\d+)\)$'
-    df = extractHullNo(df, col_fr, 'Hull_type', 'Hull_no', pat)
-
-    # XXX-DDD
-    pat = r'(?P<ht>[a-zA-Z]+)\-?(?P<hn>\d+)$'
-    df = extractHullNo(df, col_fr, 'Hull_type', 'Hull_no', pat)
-
-    # (XXX-DDD-X)
-    pat = r'\((?P<ht>[a-zA-Z]+)\-?(?P<hn>\d+)\-?\w+\)$'
-    df = extractHullNo(df, col_fr, 'Hull_type', 'Hull_no', pat)
+    for pat in pats:
+        df = extractHullNo(df, col_fr, 'Hull_type', 'Hull_no', pat)
 
     return df

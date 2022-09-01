@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import re
 import requests
 import uuid
@@ -482,14 +483,29 @@ def convertSpeedMeasures(df, cols):
 
 
 def convertHullNo(df):
-    """Use vessel url to extract vessel hull type and number
+    """Use vessel identification then url to extract vessel hull type
+    and number
 
     Keyword arguments:
-    df -- A panda data frame with column name provided by `vessel_url`
+    df -- A panda data frame with column names `Identification`, `vessel_url`
 
     Return:
     A pandas data frame with additional columns `Hull_type` and `Hull_no`
     """
-    df = hnfmt.seriesToHullNo(df, 'vessel_url')
+    df['Hull_type'] = np.nan
+    df['Hull_no'] = np.nan
+
+    pats = [r'Hull (?:symbol|name|number)\:(?: )*'
+            + r'(?P<ht>[a-zA-Z]+)\-?(?P<hn>\d+)(?:\ |$)',
+            r'(?P<ht>[a-zA-Z]+)\-?(?P<hn>\d+)']
+    df = hnfmt.seriesToHullNo(df, 'Identification',
+                              pats, 'Hull_type', 'Hull_no')
+
+    pats = [r'\((?P<ht>[a-zA-Z]+)\-?(?P<hn>\d+)\)$',
+            r'\((?P<ht>)(?P<hn>\d{4})\)$',
+            r'\((?P<ht>[a-zA-Z]+\(\w+\))\-?(?P<hn>\d+)\)$',
+            r'(?P<ht>[a-zA-Z]+)\-?(?P<hn>\d+)$',
+            r'\((?P<ht>[a-zA-Z]+)\-?(?P<hn>\d+)\-?\w+\)$']
+    df = hnfmt.seriesToHullNo(df, 'vessel_url', pats, 'Hull_type', 'Hull_no')
 
     return df
