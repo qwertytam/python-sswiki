@@ -419,10 +419,12 @@ def convertDates(df, cols):
     """
     dff_cols = utils.findDFCols(df, cols)
     for col in dff_cols:
-        df[col] = dfmt.seriesToDateTime(df[col])
+        print(f"Converting dates in {col}")
+        df = dfmt.findDates(df, col)
 
     date_columns = df.select_dtypes(include=['datetime64']).columns.tolist()
     df[date_columns] = df[date_columns].astype(str)
+    df[date_columns] = df[date_columns].replace('^NaT', '', regex=True)
 
     return df
 
@@ -508,4 +510,37 @@ def convertHullNo(df):
             r'\((?P<ht>[a-zA-Z]+)\-?(?P<hn>\d+)\-?\w+\)$']
     df = hnfmt.seriesToHullNo(df, 'vessel_url', pats, 'Hull_type', 'Hull_no')
 
+    return df
+
+
+def getFates(df, fate_col='Fate'):
+    """Extracts fate and associated date to seperate columns with datetime
+    string default e.g. df[['Scrapped', 'Sunk', 'Sold']] as format
+    [['YYYY-MM-DD']].
+
+    Keyword arguments:
+    df -- A pandas data frame with columns for vessel data
+    fate_col -- Column name to search for fate and date; default is 'Fate'
+
+    Return:
+    A pandas data frame with vessel fate in consistent date format.
+    """
+
+    # Assemble regex patterns to search for
+    pat_fates = {
+            'fate_scrapped': const.PAT_SCRAPPED,
+            'fate_transferred': const.PAT_TRANS,
+            'fate_sunk': const.PAT_SUNK,
+            'fate_sold': const.PAT_SOLD,
+            'fate_captured': const.PAT_CAPTURED,
+            'fate_cancelled': const.PAT_CANCELLED,
+            }
+
+    for col_name, pat in pat_fates.items():
+        print(f"Scanning and moving relevant fate and date to {col_name}")
+        df = dfmt.findDates(df, fate_col, col_name, pat)
+
+    date_columns = df.select_dtypes(include=['datetime64']).columns.tolist()
+    df[date_columns] = df[date_columns].astype(str)
+    df[date_columns] = df[date_columns].replace('^NaT', '', regex=True)
     return df
