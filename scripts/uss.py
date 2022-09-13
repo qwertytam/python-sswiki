@@ -28,13 +28,14 @@ gc = utils.dfStrNormalize(gc)
 gc = sswiki.convertLinearMeasures(gc, const.LNMES_GC_COLS)
 gc = sswiki.convertWeightMeasures(gc, const.WTMES_GC_COLS)
 gc = sswiki.convertSpeedMeasures(gc, const.SPMES_GC_COLS)
-gc.to_csv(const.DATA_DIR + FN_GC_DATA)
-
+gc.to_csv(const.DATA_DIR + 'gc_data.csv')
 print("Finished general characteristics\n")
+
 # Format service history
 sh = utils.loadVesselData(const.DATA_DIR + FN_SH_DATA, index_col='uuid')
 sh = utils.dfStrNormalize(sh)
 sh = sswiki.convertDates(sh, const.DT_SH_COLS)
 sh = sswiki.convertHullNo(sh)
-sh.to_csv(const.DATA_DIR + FN_SH_DATA)
+sh = sswiki.getFates(sh)
+sh.to_csv(const.DATA_DIR + 'sh_data.csv')
 print("Finished service history\n")
