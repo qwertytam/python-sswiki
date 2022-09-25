@@ -12,6 +12,10 @@ lxml = "*"
 html5lib = "*"
 uuid = "*"
 numpy = "*"
+matplotlib = "*"
+seaborn = "*"
+jupyter = "*"
+notebook = "*"
 
 [dev-packages]
 
